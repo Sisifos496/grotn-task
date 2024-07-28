@@ -17,8 +17,8 @@ io.on('connection', (socket) => {
     console.log('A user connected');
 
     socket.on('message', (message) => {
-        console.log('Received message:', message);
-        io.emit('message', message);
+        console.log('Received message:', message)
+        io.emit('message', message)
     });
 
     socket.on('disconnect', () => {
@@ -27,3 +27,7 @@ io.on('connection', (socket) => {
 });
 
 http.listen(7070, () => console.log('Listening on http://localhost:7070'));
+
+
+
+

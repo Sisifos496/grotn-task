@@ -38,6 +38,15 @@ expressApp.post('/api/sign-up', async (req, res) => {
     try { 
         await createUserWithEmailAndPassword(auth, req.body.email, req.body.password);
         await signInWithEmailAndPassword(auth, req.body.email, req.body.password);
+
+        const docRef = await addDoc(collection(db, "authenticated-mails"), {
+            mail: req.body.email,
+            meetingRequests: [
+                ".",
+                "."
+            ]
+        })
+
         res.status(200).send("New User is Added Successfully")
     } catch (error) {
         res.status(400).send(`New User isn't Added Successfully ${error.message}`)
@@ -200,7 +209,88 @@ expressApp.post("/api/buy-membership", async (req, res) => {
 });
 //#
 
-//#Message Apis
+//#Booking Apis
+expressApp.post("/api/search-user", async (req, res) => {
+    try {
+        let usermail = req.body.mail;
+        const querySnapshot = await getDocs(collection(db, "authenticated-mails"));
+        const users = querySnapshot.docs.map(doc => doc.data());
+
+        const userFound = users.some(user => usermail === user.mail);
+
+        if (userFound) {
+            res.sendStatus(200);
+        } else {
+            res.sendStatus(500);
+        }
+    } catch (error) {
+        res.status(500).send(`Error searching for user: ${error.message}`);
+    }
+});
+
+
+    expressApp.get("/api/check-meeting", async (req, res) => {
+        try {
+            const user = await new Promise((resolve, reject) => {
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        resolve(user);
+                    } else {
+                        reject(new Error("User not logged in"));
+                    }
+                });
+            });
+    
+            const querySnapshot = await getDocs(collection(db, "authenticated-mails"));
+            const mails = [];
+    
+            querySnapshot.forEach((doc) => {
+                mails.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+    
+            const meetingRequests = mails
+                .filter(mail => user.email === mail.mail)
+                .flatMap(mail => mail.meetingRequests || []);
+    
+            res.json(meetingRequests);
+        } catch (error) {
+            console.error("Error fetching meetings:", error);
+            res.status(500).send("Error fetching meetings");
+        }
+    });
+    
+expressApp.post("/api/send-meeting", async (req, res) => {
+    try {
+        const user = await new Promise((resolve, reject) => {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    resolve(user);
+                } else {
+                    reject(new Error("User not logged in"));
+                }
+            });
+        });
+
+        await addDoc(collection(db, "authenticated-mails"), {
+            mail: req.body.mail,
+            meetingRequests: [
+                user.email,
+                req.body.text
+            ]
+        });
+
+        res.status(200).send("Meeting request sent successfully");
+    } catch (error) {
+        console.error("Error sending meeting request:", error);
+    }
+});
+
+//#
+
+//#Messages
     expressApp.get("/api/get-messages", async (req, res) => {
         try {
             const querySnapshot = await getDocs(collection(db, "messages"));
@@ -216,21 +306,8 @@ expressApp.post("/api/buy-membership", async (req, res) => {
             res.json(messages);
         } catch (error) {
             console.log(error)
-            res.status(500).send(`Error getting houses: ${error.message}`);
+            res.status(500).send(`Error getting messages: ${error.message}`);
         }
-    })
-
-    expressApp.get("/api/get-username", async (req, res) => {
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                let email = user.email;
-                let username = email.split("@")[0]
-
-                res.send(username)
-            } else {
-                console.log("User not logged in")
-            }
-        })
     })
 
     expressApp.post("/api/send-message", async (req, res) => {
@@ -254,6 +331,21 @@ expressApp.post("/api/buy-membership", async (req, res) => {
         res.sendStatus(200)
     })
 //#
+
+//#Utilities
+expressApp.get("/api/get-username", async (req, res) => {
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            let email = user.email;
+            let username = email.split("@")[0]
+
+            res.send(username)
+        } else {
+            console.log("User not logged in")
+        }
+    })
+})
+//#endregion
 
 expressApp.listen(8080, (err) => {
     if (err) {

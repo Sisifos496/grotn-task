@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        fetch('http://localhost:8080/api/check-session', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log("User is logged in")
+            } else {
+                window.location.href = "http://127.0.0.1:5500/frontend/login.html"
+            }
+        });
+    </script>
+    <title>Grotn - Booking</title>
+</head>
+<body>
+    <div>
+        <button onclick="checkMeetings()">Check Meetings</button>
+    </div>
+    <textarea id="search-area"></textarea>
+    <button onclick="searchUser()">Search The User</button>
+    <div>
+        <ul id="foundUser">
+
+        </ul>
+    </div>
+</body>
+<script>
+    const container = document.getElementById("foundUser");
+
+    async function checkMeetings() {
+    const response = await fetch('http://localhost:8080/api/check-meeting', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+
+    if (response.ok) {
+        const data = await response.json();
+        console.log(data)
+        alert(JSON.stringify(data))
+    } else {
+        console.error('Failed to fetch meetings');
+    }
+}
+
+    async function searchUser() {
+        let textareaValue = document.getElementById("search-area").value; 
+        const response = await fetch("http://localhost:8080/api/search-user", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(
+                { mail: textareaValue }
+            )
+        })
+
+        if (response.ok) {
+            let foundUser = document.createElement("li")
+            foundUser.textContent = textareaValue
+
+            foundUser.addEventListener("click", async () => {
+                let request = prompt("Write your meeting request")
+
+                await fetch("http://localhost:8080/api/send-meeting", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(
+                        { 
+                            mail: textareaValue,
+                            text: request 
+                        }
+                    )
+                })
+            })
+
+            container.appendChild(foundUser)
+        } else {
+            console.error('User not found')
+        }
+    }
+</script>
+</html>
