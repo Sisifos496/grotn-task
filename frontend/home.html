@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Grotn - Home</title>
+</head>
+<body>
+    <script>
+        fetch('http://localhost:8080/api/check-session', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log("User is logged in");
+            } else {
+                window.location.href = "http://127.0.0.1:5500/frontend/login.html";
+            }
+        });
+    </script>
+
+    <button onclick="signOut()">Sign Out</button>
+    <button onclick="chatroom()">Go To Chatroom</button>
+    <button onclick="purchaseMembership()">Buy Membership</button>
+    <div id="container"></div>
+
+    <script>
+        const purchaseMembership = async () => {
+            try {
+                const response = await fetch("http://localhost:8080/api/buy-membership", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText);
+                }
+
+                const data = await response.json();
+                if (data.url) {
+                    window.location = data.url;
+                } else {
+                    alert("Purchase failed");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        };
+
+        const chatroom = () => {
+            window.location = "http://127.0.0.1:5500/frontend/chatroom.html";
+        };
+
+        const signOut = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/api/sign-out', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText);
+                }
+
+                location.reload();
+            } catch (error) {
+                console.error("Error:", error);
+                window.location.href = "http://127.0.0.1:5500/frontend/login.html";
+            }
+        };
+
+        async function loadHouses() {
+            const container = document.getElementById("container");
+
+            try {
+                const response = await fetch("http://localhost:8080/api/get-houses", {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    alert("failed loading houses")
+                }
+
+                const houses = await response.json();
+
+                houses.forEach(house => {
+                    let text = document.createElement("h3");
+                    text.textContent = `${house.name} ${house.price}`;
+                    text.setAttribute('data-id', house.id);
+
+                    text.addEventListener('click', function() {
+                        const houseId = this.getAttribute('data-id');
+                        purchaseHouse(houseId);
+                    });
+
+                    container.appendChild(text);
+                });
+
+            } catch (error) {
+                console.error("Error fetching houses:", error);
+            }
+        }
+
+        async function purchaseHouse(houseId) {
+            try {
+                const response = await fetch("http://localhost:8080/api/purchase", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ id: houseId })
+                });
+
+                if (!response.ok) {
+                    alert("problem purchasing house")
+                }
+
+                const data = await response.json();
+                if (data.url) {
+                    window.location = data.url;
+                } else {
+                    alert("Purchase failed");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+
+        loadHouses();
+    </script>
+</body>
+</html>

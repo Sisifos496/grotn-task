@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Grotn - Login</title>
+    </head>
+    <body>
+        <div class="signup-container">
+            <div class="email-input">
+                <h4>E-mail:</h4>
+                    <input class="email-input" id="email-input" type="email"/>
+            </div>
+            <div class="password-input">
+                <h4>Password:</h4>
+                <input class="pass-input" id="pass-input" type="password"/>
+            </div>
+            <div class="submit">
+                <button id="login-button" >Login</button>
+            </div>
+        </div>
+    </body>
+    <script>
+        document.getElementById("login-button").addEventListener("click", () => {
+            mailInputValue = document.getElementById("email-input").value
+            passInputValue = document.getElementById("pass-input").value
+
+            fetch('http://localhost:8080/api/login', 
+                {method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: mailInputValue,
+                    password: passInputValue
+                })})
+                    .then(response => {
+                        if (response.ok) {
+                            console.log("User is successfully logged in")
+                            window.location.href = "http://127.0.0.1:5500/frontend/home.html" 
+                        }
+                        else {
+                            console.log(response.text)
+                        }
+                    }
+                )
+            })
+    </script>
+</html>

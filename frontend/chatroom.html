@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Grotn - Chatroom</title>
+</head>
+<script src="https://cdn.socket.io/3.0.0/socket.io.min.js"></script>
+<script>
+
+    fetch('http://localhost:8080/api/check-session', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log("User is logged in");
+        } else {
+            window.location.href = "http://127.0.0.1:5500/frontend/login.html";
+        }
+    });
+
+    let username = '';
+    fetch('http://localhost:8080/api/get-username', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.text())
+    .then(name => {
+        username = name;
+        console.log("Username:", username);
+    })
+    .catch(error => {
+        console.log("Failed to get username:", error);
+    });
+</script>
+<body>
+    <div>
+        <textarea id="text"></textarea>
+        <button onclick="sendMessage()">Send message</button>
+    </div>
+    
+    <ul id="messages-container"></ul>
+</body>
+<script>
+    const messageContainer = document.getElementById("messages-container");
+    const socket = io('http://localhost:7070');
+
+    async function loadMessages() {
+        try {
+            const response = await fetch("http://localhost:8080/api/get-messages", {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error("A problem occurred while fetching messages");
+            }
+
+            const messages = await response.json();
+            messages.forEach(message => {
+                const text = document.createElement("li");
+                text.textContent = `${message.user} => ${message.text}`;
+                messageContainer.appendChild(text);
+            });
+        } catch (error) {
+            console.error("Error fetching messages:", error);
+        }
+    }
+
+    loadMessages();
+
+    socket.on("message", text => {
+        const textMessage = document.createElement("li");
+        textMessage.textContent = text;
+        messageContainer.appendChild(textMessage);
+    });
+
+    async function sendMessage() {
+        const textArea = document.getElementById('text');
+        const text = `${username} => ${textArea.value}`;
+
+        if (textArea.value.trim() === '') {
+            console.log("Message text is empty.");
+            return;
+        }
+
+        socket.emit('message', text);
+
+        try {
+            await fetch("http://localhost:8080/api/send-message", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ text: textArea.value })
+            });
+            textArea.value = '';
+        } catch (error) {
+            console.error("Error sending message:", error);
+        }
+    }
+</script>
+</html>
